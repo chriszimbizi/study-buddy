@@ -75,6 +75,7 @@ class AssistantManager:
 
     assistant_id = "asst_htPPJ3OoFsxFNmbpSXq25HXq"
     thread_id = "thread_Dh20rz1miZ9L5q0wJhUKNosz"
+    file_ids = ["file-eAcAJQ1vg4OjSbvvm5d9zuE0"]
 
     def __init__(self, model: str = model) -> None:
         self.client = client
@@ -99,7 +100,9 @@ class AssistantManager:
                 f"Found existing thread with ID: {AssistantManager.thread_id}"
             )
 
-    def create_assistant(self, name: str, instructions: str, tools: list, files: list):
+    def create_assistant(
+        self, name: str, instructions: str, tools: list, file_ids: list
+    ):
         """
         Create an assistant using the given model and file.
 
@@ -117,7 +120,7 @@ class AssistantManager:
                 name=name,
                 instructions=instructions,
                 tools=tools,
-                file_ids=[file.id for file in files],
+                file_ids=file_ids,
             )
             self.assistant = assistant
             self.assistant_id = assistant.id
@@ -177,6 +180,45 @@ class AssistantManager:
                 instructions=instructions,
             )
 
+    # FIXME
+    def format_response(self, response) -> str:
+        """
+        Format the response from the Assistant to include footnotes.
+
+        Parameters:
+        - response (Message): The response from the Assistant.
+
+        Returns:
+        - str: The formatted response.
+        """
+        # Extract the message content
+        message_content = response.content[0].text
+        annotations = message_content.annotations
+        citations = []
+
+        # Iterate over the annotations and add footnotes
+        for index, annotation in enumerate(annotations):
+            # Replace the text with a footnote
+            message_content.value = message_content.value.replace(
+                annotation.text, f" [{index}]"
+            )
+
+            # Gather citations based on annotation attributes
+            if file_citation := getattr(annotation, "file_citation", None):
+                cited_file = client.files.retrieve(file_citation.file_id)
+                citations.append(
+                    f"[{index}] {file_citation.quote} from {cited_file.filename}"
+                )
+            elif file_path := getattr(annotation, "file_path", None):
+                cited_file = client.files.retrieve(file_path.file_id)
+                citations.append(
+                    f"[{index}] Click <here> to download {cited_file.filename}"
+                )
+
+        # Add footnotes to the end of the message before displaying to user
+        message_content.value += "\n" + "\n".join(citations)
+        return message_content.value
+
     def wait_for_run_completion(self, sleep_interval=5):
         """
         Waits for a run to complete by checking its status periodically.
@@ -203,7 +245,7 @@ class AssistantManager:
                             thread_id=self.thread_id
                         )
                         last_message = messages.data[0]
-                        response = last_message.content[0].text.value
+                        response = self.format_response(last_message)
                         print(f"Assistant Response: {response}")
                         break
             except Exception as e:
@@ -214,7 +256,7 @@ class AssistantManager:
             loggers["run_logger"].info("Waiting for run to complete...")
             time.sleep(sleep_interval)
 
-    # FIXME: Buggy
+    # FIXME
     def log_run_steps(self):
         """
         Log steps of a run.
@@ -236,24 +278,29 @@ def main():
         "files",
         "Black Study, Black Struggle - Boston Review.pdf",
     )
-    file = client.files.create(
-        file=open(file_path, "rb"),
-        purpose="assistants",
-    )
+
+    if os.path.exists(file_path):
+        file = client.files.create(
+            file=open(file_path, "rb"),
+            purpose="assistants",
+        )
+        manager.file_ids.append(file.id)
 
     # Create Assistant
     manager.create_assistant(
         name="Study Assistant",
         instructions="""You are a helpful study assistant who knows a lot about understanding research papers. Your role is to summarize papers, clarify terminology within context, and extract key figures and data. Cross-reference information for additional insights and answer related questions comprehensively. Analyze the papers, noting strengths and limitations. Respond to queries effectively, incorporating feedback to enhance your accuracy. Handle data securely and update your knowledge base with the latest research. Adhere to ethical standards, respect intellectual property, and provide users with guidance on any limitations. Maintain a feedback loop for continuous improvement and user support. Your ultimate goal is to facilitate a deeper understanding of complex scientific material, making it more accessible and comprehensible.""",
         tools=[{"type": "retrieval"}],
-        files=[file],
+        file_ids=manager.file_ids,
     )
 
     # Create Thread
     thread = manager.create_thread()
 
     # Create Message on Thread
-    message = "Summarize what Robin D.G Kelley is trying to say and the criticisms he brings up."
+    message = (
+        "What does Kelley identify as the contradictory impulses within the movement?"
+    )
     manager.add_message_to_thread(
         role="user",
         content=message,
