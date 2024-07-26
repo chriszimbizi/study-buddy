@@ -11,7 +11,7 @@ import openai
 
 def main():
 
-    # Load environment and initialize OpenAI API andclient
+    # Load environment and initialize OpenAI API and client
     openai_api_key = load_environment()
     client = openai.OpenAI(api_key=openai_api_key)
 

@@ -183,7 +183,6 @@ class AssistantManager:
             logger.info(f"Retrieved {len(messages)} messages from the Assistant.")
             return messages
 
-    # FIXME: Citations not working
     def format_message(self, message) -> str:
         """
         Format the message from the Assistant to include footnotes.
@@ -255,14 +254,3 @@ class AssistantManager:
                 break
             self.loggers["run_logger"].info("Waiting for run to complete...")
             time.sleep(sleep_interval)
-
-    # FIXME
-    # def log_run_steps(self):
-    #     """
-    #     Log steps of a run.
-    #     """
-
-    #     run_steps = client.beta.threads.runs.list(thread_id=self.thread_id)
-    #     for step in run_steps["data"]:
-    #         step_type = step["step_details"]["type"]
-    #         loggers["run_logger"].info(f"Run Step: {step_type}")
