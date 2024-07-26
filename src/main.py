@@ -106,7 +106,6 @@ def main():
             # Create a new thread for the assistant to use
             thread = manager.create_thread()
             st.session_state.thread_id = thread.id
-            st.write(f"Thread ID: {thread.id}")
         else:
             st.sidebar.warning("No files found. Please upload a file to get started.")
 

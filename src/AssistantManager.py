@@ -13,19 +13,20 @@ class AssistantManager:
     completion, and retrieves the summary.
     """
 
-    assistant_id = "asst_ZB0wxraLKQALfQUcDAvP55YX"
-    thread_id = "thread_3ODhx9uM14L77e42TY9neNIT"
+    assistant_id = "asst_ICnLjgfneeQFYrRmSckG2MDL"
+    thread_id = "thread_IMy8rg00uxj40kuS0L9RApbN"
+    vector_store_id = "vs_fhVKvG244ieSCE6NIcjqcyYd"
 
     def __init__(self, model: str, client: openai.OpenAI, loggers: dict) -> None:
         self.client = client
         self.model = model
         self.assistant = None
         self.thread = None
+        self.vector_store = None
         self.run = None
-        self.vector_store_id = None
         self.loggers = loggers
 
-        # Check for existing assistant and thread
+        # Check for existing assistant, thread, and vector store
         if AssistantManager.assistant_id:
             self.assistant = self.client.beta.assistants.retrieve(
                 assistant_id=AssistantManager.assistant_id
@@ -39,6 +40,13 @@ class AssistantManager:
             )
             self.loggers["thread_logger"].info(
                 f"Found existing thread with ID: {AssistantManager.thread_id}"
+            )
+        if AssistantManager.vector_store_id:
+            self.vector_store = self.client.beta.vector_stores.retrieve(
+                vector_store_id=AssistantManager.vector_store_id
+            )
+            self.loggers["file_logger"].info(
+                f"Found existing vector store with ID: {AssistantManager.vector_store_id}"
             )
 
     def create_assistant(
@@ -239,7 +247,6 @@ class AssistantManager:
                         )
                         last_message = messages.data[0]
                         response = self.format_message(last_message)
-                        print(f"Assistant Response: {response}")
                         break
             except Exception as e:
                 self.loggers["run_logger"].error(
