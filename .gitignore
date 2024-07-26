@@ -1,5 +1,9 @@
 data/.env
 venv
 .DS_Store
-logs/*
-files/*
+logs/assistant_logs/*
+logs/file_logs/*
+logs/run_logs/*
+logs/thread_logs/*
+temp_files/*
+__pycache__/
