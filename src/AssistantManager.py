@@ -14,7 +14,7 @@ class AssistantManager:
     """
 
     assistant_id = "asst_ZB0wxraLKQALfQUcDAvP55YX"
-    thread_id = ""
+    thread_id = "thread_3ODhx9uM14L77e42TY9neNIT"
 
     def __init__(self, model: str, client: openai.OpenAI, loggers: dict) -> None:
         self.client = client
@@ -155,7 +155,7 @@ class AssistantManager:
         - instructions (str): Instructions for the Assistant.
         """
         if self.assistant and self.thread:
-            self.run = self.client.beta.threads.runs.create(
+            self.run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=self.thread_id,
                 assistant_id=self.assistant_id,
                 instructions=instructions,
@@ -175,7 +175,7 @@ class AssistantManager:
             logger.info(f"Retrieved {len(messages)} messages from the Assistant.")
             return messages
 
-    # FIXME
+    # FIXME: Citations not working
     def format_message(self, message) -> str:
         """
         Format the message from the Assistant to include footnotes.
@@ -188,34 +188,29 @@ class AssistantManager:
         """
         # Extract the message content
         message_content = message.content[0].text
-        # annotations = message_content.annotations
-        # citations = []
+        annotations = message_content.annotations
+        citations = []
 
-        # # Iterate over the annotations and add footnotes
-        # for index, annotation in enumerate(annotations):
-        #     # Replace the text with a footnote
-        #     message_content.value = message_content.value.replace(
-        #         annotation.text, f" [{index + 1}]"
-        #     )
+        # Iterate over the annotations and add footnotes
+        for index, annotation in enumerate(annotations):
+            # Replace the text with a footnote
+            message_content.value = message_content.value.replace(
+                annotation.text, f" [{index + 1}]"
+            )
 
-        #     # Gather citations based on annotation attributes
-        #     if file_citation := getattr(annotation, "file_citation", None):
-        #         cited_file = client.files.retrieve(file_citation.file_id)
-        #         citations.append(
-        #             f"[{index + 1}] {file_citation.quote} from {cited_file.filename}"
-        #         )
-        #     elif file_path := getattr(annotation, "file_path", None):
-        #         cited_file = client.files.retrieve(file_path.file_id)
-        #         citations.append(
-        #             f"[{index + 1}] Click <here> to download {cited_file.filename}"
-        #         )
+            # Gather citations based on annotation attributes
+            if file_citation := getattr(annotation, "file_citation", None):
+                cited_file = self.client.files.retrieve(file_citation.file_id)
+                citations.append(
+                    f"[{index + 1}] {file_citation} from {cited_file.filename}"
+                )
 
-        # # Add footnotes to the end of the message before displaying to user
-        # message_content.value += "\n" + "\n".join(citations)
+        # Add footnotes to the end of the message before displaying to user
+        # message_content.value += "\n" + "\n\n".join(citations)
         message = message_content.value
         logger = self.loggers["run_logger"]
-        logger.info(f"Formatted message: {message}")
-        return message_content.value
+        logger.info(f"Message successfully formatted")
+        return message
 
     def wait_for_run_completion(self, sleep_interval=5):
         """

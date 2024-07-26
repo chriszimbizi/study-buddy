@@ -56,16 +56,9 @@ def main():
         page_icon=":books:",
     )
 
-    # Display Assistant ID
-    st.write(f"Assistant ID: {st.session_state.assistant_id}")
-
     # === Sidebar=== #
 
     # File uploads
-
-    # Create directory for temporary files if it doesn't exist
-    if not os.path.exists("../temp_files"):
-        os.makedirs("../temp_files")
 
     files_to_upload = st.sidebar.file_uploader(
         "Upload files",
@@ -78,21 +71,18 @@ def main():
         if not files_to_upload:
             st.sidebar.warning("No files found. Please select a file to upload.")
         else:
-            file_paths = []
             for file_to_upload in files_to_upload:
-                file_path = os.path.join("../temp_files", file_to_upload.name)
-                file_paths.append(file_path)
-                with open(file_path, "wb") as f:
+                with open(file_to_upload.name, "wb") as f:
                     f.write(file_to_upload.getbuffer())
+                    st.session_state.uploaded_files.append(file_to_upload.name)
 
             # Create or update vector store and upload files
             manager.create_vector_store(name="Study Buddy Vector Store")
-            manager.upload_files_to_vector_store(file_paths)
+            st.session_state.vector_store_id_list.append(
+                manager.vector_store_id
+            )  # Add vector store ID to session state
+            manager.upload_files_to_vector_store(st.session_state.uploaded_files)
             manager.update_assistant_with_vector_store()
-
-            # Add vector store ID and file names to session state
-            st.session_state.vector_store_id_list.append(manager.vector_store_id)
-            st.session_state.uploaded_files.append(file_paths)
 
             st.success("Files uploaded and vector store updated successfully!")
 
@@ -102,6 +92,7 @@ def main():
                 for index, file_name in enumerate(st.session_state.uploaded_files):
                     file_name = os.path.basename(file_name)
                     st.write(f"{index + 1}. {file_name}")
+
             else:
                 st.sidebar.warning(
                     "No files found. Please upload a file to get started."
