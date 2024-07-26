@@ -60,6 +60,11 @@ def main():
 
     # File uploads
 
+    # File uploads directory
+    file_directory = "../files/uploads"
+    if not os.path.exists(file_directory):
+        os.makedirs(file_directory, exist_ok=True)
+
     files_to_upload = st.sidebar.file_uploader(
         "Upload files",
         key="file_uploader",
@@ -72,7 +77,8 @@ def main():
             st.sidebar.warning("No files found. Please select a file to upload.")
         else:
             for file_to_upload in files_to_upload:
-                with open(file_to_upload.name, "wb") as f:
+                file_path = os.path.join(file_directory, file_to_upload.name)
+                with open(file_path, "wb") as f:
                     f.write(file_to_upload.getbuffer())
                     st.session_state.uploaded_files.append(file_to_upload.name)
 
