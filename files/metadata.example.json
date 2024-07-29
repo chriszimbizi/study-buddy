@@ -1,0 +1,12 @@
+{
+  "vector_store_id": [
+    {
+      "example_file_name_1": "example-file-name-1",
+      "example_file_id_1": "example-file-id-1"
+    },
+    {
+      "example_file_name_2": "example-file-name-2",
+      "example_file_id_2": "example-file-id-2"
+    }
+  ]
+}

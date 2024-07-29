@@ -1,7 +1,9 @@
+import json
 import time
 from typing import Iterable, List, Literal
 import openai
 from openai.types.beta import AssistantToolParam
+import os
 
 
 class AssistantManager:
@@ -17,7 +19,13 @@ class AssistantManager:
     thread_id = "thread_IMy8rg00uxj40kuS0L9RApbN"
     vector_store_id = "vs_fhVKvG244ieSCE6NIcjqcyYd"
 
-    def __init__(self, model: str, client: openai.OpenAI, loggers: dict) -> None:
+    def __init__(
+        self,
+        model: str,
+        client: openai.OpenAI,
+        loggers: dict,
+        metadata_file="../files/metadata.json",
+    ) -> None:
         self.client = client
         self.model = model
         self.assistant = None
@@ -25,6 +33,8 @@ class AssistantManager:
         self.vector_store = None
         self.run = None
         self.loggers = loggers
+        self.metadata_file = metadata_file
+        self.file_metadata = self.load_file_metadata()
 
         # Check for existing assistant, thread, and vector store
         if AssistantManager.assistant_id:
@@ -48,6 +58,26 @@ class AssistantManager:
             self.loggers["file_logger"].info(
                 f"Found existing vector store with ID: {AssistantManager.vector_store_id}"
             )
+
+    def load_file_metadata(self):
+        if (
+            os.path.exists(self.metadata_file)
+            and os.path.getsize(self.metadata_file) > 0
+        ):
+            try:
+                with open(self.metadata_file, "r") as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                self.loggers["file_logger"].error(
+                    "Invalid JSON in metadata file. Returning empty metadata."
+                )
+                return {}
+        else:
+            return {}
+
+    def save_file_metadata(self):
+        with open(self.metadata_file, "w") as f:
+            json.dump(self.file_metadata, f)
 
     def create_assistant(
         self, name: str, instructions: str, tools: Iterable[AssistantToolParam]
@@ -101,6 +131,48 @@ class AssistantManager:
             self.loggers["file_logger"].info(
                 f"File batch counts: {file_batch.file_counts}"
             )
+
+            # Store metadata for each file
+            file_ids = self.get_file_ids_from_vector_store(self.vector_store_id)
+
+            if file_ids:
+                for file_path, file_id in zip(file_paths, file_ids):
+                    file_name = os.path.basename(file_path)
+
+                    # Add to the file metadata dictionary
+                    if self.vector_store_id not in self.file_metadata:
+                        self.file_metadata[self.vector_store_id] = []
+
+                    self.file_metadata[self.vector_store_id].append(
+                        {
+                            "file_name": file_name,
+                            "file_id": file_id,
+                        }
+                    )
+
+            # Save metadata to persistent storage
+            self.save_file_metadata()
+
+    def get_file_ids_from_vector_store(self, vector_store_id: str) -> List[str] | None:
+        """
+        Retrieve the file IDs from the vector store.
+
+        Parameters:
+        - vector_store_id (str): The ID of the vector store.
+
+        Returns:
+        - List[str] | None: The list of file IDs from the vector store. None if no files are found.
+        """
+        if self.vector_store_id:
+            self.loggers["file_logger"].info("Retrieving files from vector store...")
+            response = self.client.beta.vector_stores.files.list(
+                vector_store_id=vector_store_id
+            )
+            file_ids = [file.id for file in response.data]
+            self.loggers["file_logger"].info(
+                f"Retrieved {len(file_ids)} file IDsfrom the vector store."
+            )
+            return file_ids
 
     def update_assistant_with_vector_store(self):
         """
