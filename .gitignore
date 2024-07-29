@@ -1,4 +1,4 @@
-.env*
+.env
 venv
 .DS_Store
 logs/assistant_logs/*
@@ -7,3 +7,4 @@ logs/run_logs/*
 logs/thread_logs/*
 files/uploads/*
 __pycache__/
+files/metadata.json
