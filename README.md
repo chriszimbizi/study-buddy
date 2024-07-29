@@ -74,3 +74,4 @@ Study Buddy is a Streamlit application designed to facilitate interaction with r
 - Custom Error Handling: Developing robust error handling and logging mechanisms was essential for dealing with the challenges presented by the beta API.
 
 ## Screenshots
+![Study Buddy - Chat with your research paper](https://github.com/user-attachments/assets/378c5738-ed41-414b-9eaf-ac10a65a5738)
