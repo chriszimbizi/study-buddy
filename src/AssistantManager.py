@@ -170,7 +170,7 @@ class AssistantManager:
             )
             file_ids = [file.id for file in response.data]
             self.loggers["file_logger"].info(
-                f"Retrieved {len(file_ids)} file IDsfrom the vector store."
+                f"Retrieved {len(file_ids)} file IDs from the vector store."
             )
             return file_ids
 
@@ -187,6 +187,44 @@ class AssistantManager:
                 },
             )
             self.loggers["file_logger"].info("Assistant updated with vector store.")
+
+    def clear_vector_store(self):
+        try:
+            # Load metadata
+            with open(self.metadata_file, "r") as f:
+                data = json.load(f)
+
+            # Delete files from vector store
+            for file_metadata in data.get(self.vector_store_id, []):
+                file_name = file_metadata.get("file_name")
+                file_id = file_metadata.get("file_id")
+                try:
+                    self.client.beta.vector_stores.files.delete(
+                        file_id=file_id, vector_store_id=self.vector_store_id
+                    )
+                    logger = self.loggers["file_logger"]
+                    logger.info(f"Deleted '{file_name}' from vector store.")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to delete '{file_name}' from vector store: {e}"
+                    )
+
+            # Clear metadata file
+            with open(self.metadata_file, "w") as f:
+                json.dump({}, f)
+            logger.info("Cleared all metadata from the file.")
+
+        except Exception as e:
+            logger = self.loggers["file_logger"]
+            logger.error(f"An error occurred while clearing vector store: {e}")
+
+    def vector_store_has_files(self):
+        vector_store_list = self.client.beta.vector_stores.files.list(
+            vector_store_id=self.vector_store_id
+        )
+        if vector_store_list.data:
+            return True
+        return False
 
     def create_thread(self):
         """

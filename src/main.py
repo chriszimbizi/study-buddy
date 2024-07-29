@@ -33,12 +33,15 @@ def main():
     st.session_state.assistant_id = manager.assistant_id
 
     # Dictionary to store vector store IDs
-    if "vector_store_id" not in st.session_state:
-        st.session_state.vector_store_id = ""
+    if "vector_store_id_list" not in st.session_state:
+        st.session_state.vector_store_id_list = []
 
     # Directory for uploaded files
     if "uploaded_file_paths" not in st.session_state:
         st.session_state.uploaded_file_paths = []
+
+    if "file_uploader_key" not in st.session_state:
+        st.session_state["file_uploader_key"] = 0
 
     # Start chat button
     if "start_chat" not in st.session_state:
@@ -56,9 +59,15 @@ def main():
         page_icon=":books:",
     )
 
-    # === Sidebar=== #
+    # Display uploaded file names
+    if manager.vector_store_id in manager.file_metadata:
+        st.sidebar.write("Files in Vector Store:")
+        for index, file_info in enumerate(
+            manager.file_metadata[manager.vector_store_id]
+        ):
+            st.sidebar.write(f"{index + 1}. {file_info['file_name']}")
 
-    # File uploads
+    # === Sidebar for file uploads === #
 
     # File uploads directory
     file_directory = "../files/uploads"
@@ -84,33 +93,28 @@ def main():
 
             # Create or update vector store and upload files
             manager.create_vector_store(name="Study Buddy Vector Store")
-            st.session_state.vector_store_id = (
+            st.session_state.vector_store_id_list.append(
                 manager.vector_store_id
             )  # Add vector store ID to session state
             manager.upload_files_to_vector_store(st.session_state.uploaded_file_paths)
+
+            # Update the assistant with the vector store
             manager.update_assistant_with_vector_store()
 
-            st.success("Files uploaded and vector store updated successfully!")
+            st.sidebar.success("Files uploaded and vector store updated successfully!")
 
-            # Display uploaded file names
-            if st.session_state.uploaded_file_paths:
-                st.write("Files in Vector Store:")
-                if manager.vector_store_id in manager.file_metadata:
-                    for index, file_info in enumerate(
-                        manager.file_metadata[manager.vector_store_id]
-                    ):
-                        st.write(
-                            f"{index + 1}. {file_info['file_name']}"
-                        )
-
-            else:
-                st.sidebar.warning(
-                    "No files found. Please upload a file to get started."
-                )
+    # Clear uploaded files
+    if manager.vector_store_has_files():
+        if st.sidebar.button("Clear uploaded files"):
+            manager.clear_vector_store()
+            # delete uploaded files
+            st.session_state.uploaded_file_paths = []
+            st.session_state.file_uploader_key += 1  # force re-render and reset
+            st.rerun()  # force re-run
 
     # Start chat button
     if st.sidebar.button("Start chatting..."):
-        if st.session_state.vector_store_id:
+        if manager.vector_store_has_files():
             st.session_state.start_chat = True
 
             # Create a new thread for the assistant to use
