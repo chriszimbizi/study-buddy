@@ -6,6 +6,7 @@ import streamlit as st
 from AssistantManager import AssistantManager
 from config.logging import configure_loggers
 from config.environment import load_environment
+import utils
 import openai
 
 
@@ -65,14 +66,15 @@ def main():
         for index, file_info in enumerate(
             manager.file_metadata[manager.vector_store_id]
         ):
-            st.sidebar.write(f"{index + 1}. {file_info['file_name']}")
+            file_name = os.path.basename(file_info["file_path"])
+            st.sidebar.write(f"{index + 1}. {file_name}")
 
     # === Sidebar for file uploads === #
 
     # File uploads directory
-    file_directory = "../files/uploads"
-    if not os.path.exists(file_directory):
-        os.makedirs(file_directory, exist_ok=True)
+    upload_directory = "../files/uploads"
+    if not os.path.exists(upload_directory):
+        os.makedirs(upload_directory, exist_ok=True)
 
     files_to_upload = st.sidebar.file_uploader(
         "Upload files",
@@ -86,7 +88,7 @@ def main():
             st.sidebar.warning("No files found. Please select a file to upload.")
         else:
             for file_to_upload in files_to_upload:
-                file_path = os.path.join(file_directory, file_to_upload.name)
+                file_path = os.path.join(upload_directory, file_to_upload.name)
                 with open(file_path, "wb") as f:
                     f.write(file_to_upload.getbuffer())
                     st.session_state.uploaded_file_paths.append(file_path)
@@ -104,10 +106,16 @@ def main():
             st.sidebar.success("Files uploaded and vector store updated successfully!")
 
     # Clear uploaded files
-    if manager.vector_store_has_files():
+    if manager.vector_store_has_files() or utils.has_files(upload_directory):
         if st.sidebar.button("Clear uploaded files"):
-            manager.clear_vector_store()
-            # delete uploaded files
+            # Delete local uploaded files
+            deleted_file_paths = manager.clear_vector_store()
+            if deleted_file_paths:
+                for file_path in deleted_file_paths:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+
+            # Clear session state
             st.session_state.uploaded_file_paths = []
             st.session_state.file_uploader_key += 1  # force re-render and reset
             st.rerun()  # force re-run

@@ -59,7 +59,13 @@ class AssistantManager:
                 f"Found existing vector store with ID: {AssistantManager.vector_store_id}"
             )
 
-    def load_file_metadata(self):
+    def load_file_metadata(self) -> dict:
+        """
+        Load the file metadata from the metadata file.
+
+        Returns:
+        - dict: The file metadata dictionary.
+        """
         if (
             os.path.exists(self.metadata_file)
             and os.path.getsize(self.metadata_file) > 0
@@ -137,15 +143,13 @@ class AssistantManager:
 
             if file_ids:
                 for file_path, file_id in zip(file_paths, file_ids):
-                    file_name = os.path.basename(file_path)
-
                     # Add to the file metadata dictionary
                     if self.vector_store_id not in self.file_metadata:
                         self.file_metadata[self.vector_store_id] = []
 
                     self.file_metadata[self.vector_store_id].append(
                         {
-                            "file_name": file_name,
+                            "file_path": file_path,
                             "file_id": file_id,
                         }
                     )
@@ -188,7 +192,15 @@ class AssistantManager:
             )
             self.loggers["file_logger"].info("Assistant updated with vector store.")
 
-    def clear_vector_store(self):
+    def clear_vector_store(self) -> List[str] | None:
+        """
+        Clear the vector store and return the list of deleted files.
+
+        Returns:
+        - List[str] | None: The list of deleted files. None if no files are found.
+        """
+        deleted_file_paths = []
+
         try:
             # Load metadata
             with open(self.metadata_file, "r") as f:
@@ -196,14 +208,16 @@ class AssistantManager:
 
             # Delete files from vector store
             for file_metadata in data.get(self.vector_store_id, []):
-                file_name = file_metadata.get("file_name")
+                file_path = file_metadata.get("file_path")
                 file_id = file_metadata.get("file_id")
+                file_name = os.path.basename(file_path)
                 try:
                     self.client.beta.vector_stores.files.delete(
                         file_id=file_id, vector_store_id=self.vector_store_id
                     )
                     logger = self.loggers["file_logger"]
                     logger.info(f"Deleted '{file_name}' from vector store.")
+                    deleted_file_paths.append(file_path)  # Track deleted file paths
                 except Exception as e:
                     logger.error(
                         f"Failed to delete '{file_name}' from vector store: {e}"
@@ -214,11 +228,19 @@ class AssistantManager:
                 json.dump({}, f)
             logger.info("Cleared all metadata from the file.")
 
+            return deleted_file_paths
+
         except Exception as e:
             logger = self.loggers["file_logger"]
             logger.error(f"An error occurred while clearing vector store: {e}")
 
-    def vector_store_has_files(self):
+    def vector_store_has_files(self) -> bool:
+        """
+        Check if the vector store has files.
+
+        Returns:
+        - bool: True if the vector store has files, False otherwise.
+        """
         vector_store_list = self.client.beta.vector_stores.files.list(
             vector_store_id=self.vector_store_id
         )
