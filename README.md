@@ -1,6 +1,6 @@
 # Study Buddy
 
-Study Buddy is a Streamlit application designed to facilitate interaction with research papers using OpenAI's GPT-4 API. This project demonstrates proficiency in Python development, API integration, logging, and environment management.
+Study Buddy is a Streamlit application designed to facilitate interaction with research papers using OpenAI's Assistants API. This project demonstrates proficiency in Python development, API integration, logging, and environment management.
 
 ## Project Overview
 
