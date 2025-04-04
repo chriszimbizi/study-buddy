@@ -33,8 +33,8 @@ Study Buddy is a Streamlit application designed to facilitate interaction with r
 1. **Clone the repository:**
 
    ```bash
-   git clone <repository-url>
-   cd <repository-directory>
+   git clone https://github.com/chriszimbizi/study-buddy.git
+   cd study-buddy
    ```
 
 2. **Create and activate a virtual environment:**
